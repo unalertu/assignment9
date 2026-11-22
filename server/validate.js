@@ -58,6 +58,51 @@ export function validateMergedBook(book) {
   return [];
 }
 
+export function validateQueryParams(query) {
+  const errors = [];
+  const validSorts = ["title", "author", "year", "rating"];
+  const validOrders = ["asc", "desc"];
+
+  for (const [key, val] of Object.entries(query)) {
+    if (Array.isArray(val)) {
+      errors.push(`parameter '${key}' must not be repeated`);
+    }
+  }
+  if (errors.length > 0) return errors;
+
+  if (query.genre !== undefined && !GENRES.includes(query.genre)) {
+    errors.push(`genre must be one of: ${GENRES.join(", ")}`);
+  }
+
+  if (query.read !== undefined && query.read !== "true" && query.read !== "false") {
+    errors.push("read must be 'true' or 'false'");
+  }
+
+  if (query.sort !== undefined && !validSorts.includes(query.sort)) {
+    errors.push(`sort must be one of: ${validSorts.join(", ")}`);
+  }
+
+  if (query.order !== undefined && !validOrders.includes(query.order)) {
+    errors.push("order must be 'asc' or 'desc'");
+  }
+
+  if (query.limit !== undefined) {
+    const limit = Number(query.limit);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 50) {
+      errors.push("limit must be an integer between 1 and 50");
+    }
+  }
+
+  if (query.page !== undefined) {
+    const page = Number(query.page);
+    if (!Number.isInteger(page) || page < 1) {
+      errors.push("page must be a positive integer");
+    }
+  }
+
+  return errors;
+}
+
 export function isValidId(val) {
   const num = Number(val);
   return Number.isInteger(num) && num > 0;

@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import * as store from "./booksStore.js";
-import { validateBook, validateMergedBook, isValidId } from "./validate.js";
+import { validateBook, validateMergedBook, validateQueryParams, isValidId } from "./validate.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,10 +10,53 @@ const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:5173";
 app.use(cors({ origin: CLIENT_ORIGIN }));
 app.use(express.json());
 
-// get all books
+// list books with query options
 app.get("/api/books", async (req, res) => {
-  const books = await store.getAll();
-  res.json(books);
+  const qErrors = validateQueryParams(req.query);
+  if (qErrors.length > 0) {
+    return res.status(400).json({ error: qErrors.join("; ") });
+  }
+
+  let books = await store.getAll();
+
+  if (req.query.genre) {
+    books = books.filter(b => b.genre === req.query.genre);
+  }
+
+  if (req.query.read !== undefined) {
+    const readVal = req.query.read === "true";
+    books = books.filter(b => b.read === readVal);
+  }
+
+  if (req.query.q) {
+    const q = req.query.q.toLowerCase();
+    books = books.filter(b =>
+      b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q)
+    );
+  }
+
+  const sortField = req.query.sort || "id";
+  const order = req.query.order === "desc" ? -1 : 1;
+
+  books = [...books].sort((a, b) => {
+    if (sortField === "rating") {
+      if (a.rating === null && b.rating === null) return 0;
+      if (a.rating === null) return 1;
+      if (b.rating === null) return -1;
+      return (a.rating - b.rating) * order;
+    }
+    if (typeof a[sortField] === "string") {
+      return a[sortField].localeCompare(b[sortField]) * order;
+    }
+    return (a[sortField] - b[sortField]) * order;
+  });
+
+  const limit = req.query.limit ? Number(req.query.limit) : 50;
+  const page = req.query.page ? Number(req.query.page) : 1;
+  const start = (page - 1) * limit;
+  const paged = books.slice(start, start + limit);
+
+  res.json(paged);
 });
 
 // stats
