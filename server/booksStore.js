@@ -70,3 +70,21 @@ export async function isDuplicate(title, author, excludeId = null) {
     b.id !== excludeId
   );
 }
+
+export async function getStats() {
+  await delay();
+  const total = books.length;
+  const readCount = books.filter(b => b.read).length;
+  const unread = total - readCount;
+  const rated = books.filter(b => b.rating !== null);
+  const averageRating = rated.length > 0
+    ? Math.round((rated.reduce((sum, b) => sum + b.rating, 0) / rated.length) * 10) / 10
+    : null;
+
+  const byGenre = {};
+  for (const b of books) {
+    byGenre[b.genre] = (byGenre[b.genre] || 0) + 1;
+  }
+
+  return { total, read: readCount, unread, averageRating, byGenre };
+}

@@ -16,6 +16,12 @@ app.get("/api/books", async (req, res) => {
   res.json(books);
 });
 
+// stats
+app.get("/api/stats", async (req, res) => {
+  const stats = await store.getStats();
+  res.json(stats);
+});
+
 // get single book
 app.get("/api/books/:id", async (req, res) => {
   if (!isValidId(req.params.id)) {
