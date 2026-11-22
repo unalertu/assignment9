@@ -53,6 +53,41 @@ app.post("/api/books", async (req, res) => {
   res.status(201).location(`/api/books/${created.id}`).json(created);
 });
 
+// replace a book
+app.put("/api/books/:id", async (req, res) => {
+  if (!isValidId(req.params.id)) {
+    return res.status(400).json({ error: "id must be a positive integer" });
+  }
+  const id = Number(req.params.id);
+  const existing = await store.getById(id);
+  if (!existing) {
+    return res.status(404).json({ error: "Book not found" });
+  }
+
+  const { title, author, year, genre, read = false, rating = null } = req.body;
+  const bookData = {
+    title: title?.trim?.(),
+    author: author?.trim?.(),
+    year, genre, read, rating
+  };
+
+  const errors = validateBook(bookData);
+  const mergeErrors = validateMergedBook(bookData);
+  const allErrors = [...errors, ...mergeErrors];
+
+  if (allErrors.length > 0) {
+    return res.status(400).json({ error: allErrors.join("; ") });
+  }
+
+  if (await store.isDuplicate(bookData.title, bookData.author, id)) {
+    return res.status(409).json({ error: "A book with this title and author already exists" });
+  }
+
+  await store.update(id, bookData);
+  const updated = await store.getById(id);
+  res.json(updated);
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

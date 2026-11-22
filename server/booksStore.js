@@ -29,6 +29,19 @@ export async function create(data) {
   return { ...newBook };
 }
 
+export async function update(id, data) {
+  await delay();
+  let found = false;
+  books = books.map(b => {
+    if (b.id === id) {
+      found = true;
+      return { ...data, id };
+    }
+    return b;
+  });
+  return found;
+}
+
 export async function isDuplicate(title, author, excludeId = null) {
   await delay();
   const t = title.trim().toLowerCase();
