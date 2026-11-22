@@ -88,6 +88,59 @@ app.put("/api/books/:id", async (req, res) => {
   res.json(updated);
 });
 
+// partial update
+app.patch("/api/books/:id", async (req, res) => {
+  if (!isValidId(req.params.id)) {
+    return res.status(400).json({ error: "id must be a positive integer" });
+  }
+  const id = Number(req.params.id);
+  const existing = await store.getById(id);
+  if (!existing) {
+    return res.status(404).json({ error: "Book not found" });
+  }
+
+  const allowed = ["title", "author", "year", "genre", "read", "rating"];
+  const changes = {};
+  for (const key of allowed) {
+    if (key in req.body) {
+      changes[key] = key === "title" || key === "author"
+        ? req.body[key]?.trim?.() ?? req.body[key]
+        : req.body[key];
+    }
+  }
+
+  const errors = validateBook(changes, true);
+  if (errors.length > 0) {
+    return res.status(400).json({ error: errors.join("; ") });
+  }
+
+  const merged = { ...existing, ...changes };
+  const mergeErrors = validateMergedBook(merged);
+  if (mergeErrors.length > 0) {
+    return res.status(400).json({ error: mergeErrors.join("; ") });
+  }
+
+  if (merged.title && merged.author && await store.isDuplicate(merged.title, merged.author, id)) {
+    return res.status(409).json({ error: "A book with this title and author already exists" });
+  }
+
+  const updated = await store.patch(id, changes);
+  res.json(updated);
+});
+
+// delete a book
+app.delete("/api/books/:id", async (req, res) => {
+  if (!isValidId(req.params.id)) {
+    return res.status(400).json({ error: "id must be a positive integer" });
+  }
+  const id = Number(req.params.id);
+  const removed = await store.remove(id);
+  if (!removed) {
+    return res.status(404).json({ error: "Book not found" });
+  }
+  res.status(204).end();
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

@@ -42,6 +42,24 @@ export async function update(id, data) {
   return found;
 }
 
+export async function patch(id, changes) {
+  await delay();
+  const book = books.find(b => b.id === id);
+  if (!book) return null;
+  const updated = { ...book, ...changes, id };
+  books = books.map(b => b.id === id ? updated : b);
+  return { ...updated };
+}
+
+export async function remove(id) {
+  await delay();
+  const exists = books.some(b => b.id === id);
+  if (exists) {
+    books = books.filter(b => b.id !== id);
+  }
+  return exists;
+}
+
 export async function isDuplicate(title, author, excludeId = null) {
   await delay();
   const t = title.trim().toLowerCase();
